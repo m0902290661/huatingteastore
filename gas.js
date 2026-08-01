@@ -10,7 +10,6 @@ function doGet(e) {
     var rows = adminSheet ? adminSheet.getDataRange().getValues() : [];
     
     var isAuthenticated = false;
-    // 從第 2 列開始比對 (略過標題)
     for (var i = 1; i < rows.length; i++) {
       if (rows[i][0].toString() === user && rows[i][1].toString() === pass) {
         isAuthenticated = true;
@@ -24,8 +23,26 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
   
-  // 1. 後台取得所有訂單與客戶資料
+  // 1. 後台取得所有訂單與客戶資料 (加強安全驗證)
   if (action === "getAdminData") {
+    var user = e.parameter.user;
+    var pass = e.parameter.pass;
+    var adminSheet = ss.getSheetByName("管理員資料");
+    var rows = adminSheet ? adminSheet.getDataRange().getValues() : [];
+    var isAuth = false;
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString() === user && rows[i][1].toString() === pass) {
+        isAuth = true;
+        break;
+      }
+    }
+    
+    if (!isAuth) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ status: "unauthorized" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
     var orderSheet = ss.getSheetByName("訂單");
     var customerSheet = ss.getSheetByName("客戶資料");
     
@@ -33,7 +50,7 @@ function doGet(e) {
     var customers = customerSheet ? customerSheet.getDataRange().getValues() : [];
     
     return ContentService
-      .createTextOutput(JSON.stringify({ orders: orders, customers: customers }))
+      .createTextOutput(JSON.stringify({ status: "success", orders: orders, customers: customers }))
       .setMimeType(ContentService.MimeType.JSON);
   }
   
@@ -66,7 +83,7 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
   
-  // 3. 原本的商品資料讀取
+  // 3. 商品資料讀取
   var sheet = ss.getSheetByName("商品資料");
   var productId = e.parameter.id;
   var rows = sheet.getDataRange().getValues();
@@ -74,7 +91,7 @@ function doGet(e) {
   var productData = { name: productId, description: "找不到介紹", teaPrice: 0, cans: [], boxes: [] };
   
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] === productId) {
+    if (rows[i][0].toString().trim() === productId.toString().trim()) {
       productData.description = rows[i][1];
       productData.teaPrice = rows[i][2];
       
@@ -100,20 +117,36 @@ function doPost(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var data = JSON.parse(e.postData.contents);
   
+  // 1. 後台更新訂單進度與寄件代號 (驗證權限)
   if (data.action === "updateStatus") {
-    var orderSheet = ss.getSheetByName("訂單");
-    var rows = orderSheet.getDataRange().getValues();
-    
+    var adminSheet = ss.getSheetByName("管理員資料");
+    var rows = adminSheet ? adminSheet.getDataRange().getValues() : [];
+    var isAuth = false;
     for (var i = 1; i < rows.length; i++) {
-      if (rows[i][0].toString() === data.orderId.toString()) {
-        orderSheet.getRange(i + 1, 8).setValue(data.status);
-        orderSheet.getRange(i + 1, 9).setValue(data.trackingCode);
+      if (rows[i][0].toString() === data.user && rows[i][1].toString() === data.pass) {
+        isAuth = true;
+        break;
+      }
+    }
+    
+    if (!isAuth) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "fail" })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var orderSheet = ss.getSheetByName("訂單");
+    var orderRows = orderSheet.getDataRange().getValues();
+    
+    for (var j = 1; j < orderRows.length; j++) {
+      if (orderRows[j][0].toString() === data.orderId.toString()) {
+        orderSheet.getRange(j + 1, 8).setValue(data.status);
+        orderSheet.getRange(j + 1, 9).setValue(data.trackingCode);
         break;
       }
     }
     return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // 2. 前台送出訂單
   var customerSheet = ss.getSheetByName("客戶資料");
   if (!customerSheet) {
     customerSheet = ss.insertSheet("客戶資料");

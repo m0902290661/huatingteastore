@@ -29,7 +29,7 @@
 <body>
     <header>
         <h1><img src="logo.png" alt="華庭茶葉 Logo"> 華庭茶葉 商城</h1>
-        <p>感謝您的支持 但請看先詳讀我們的服務條款 下單後 即代表您已詳閱 <a href="服務條款.html">服務條款</a></p>
+        <p>感謝您的支持，下單前請先詳閱 <a href="服務條款.html" style="color: #ffeb3b;">服務條款</a>（郵局貨到付款）</p>
     </header>
     
     <main>
@@ -53,19 +53,18 @@
                 </div>
             </div>
 
-            <!-- 推薦商品區塊（多項時自動橫向並排） -->
+            <!-- 推薦商品區塊 -->
             <div class="推薦">
                 <h2>推薦商品</h2>
-                
-                <!-- 商品卡片 1 -->
                 <div class="card">
                     <img src="華庭茶葉節日禮盒.png" alt="華庭茶葉節日禮盒">
                     <p>華庭茶葉節日禮盒</p>
                     <p>NTD 1000起</p>
                     <a href="?id=華庭茶葉節日禮盒" class="product-link">查看</a>
                 </div>
-
             </div>
+
+            <!-- 全部商品區塊 -->
             <div class="推薦">
                 <h2>全部商品</h2>
                 <div class="card">
@@ -74,6 +73,7 @@
                     <p>NTD 1000起</p>
                     <a href="?id=華庭茶葉節日禮盒" class="product-link">查看</a>
                 </div>
+            </div>
         </div>
 
         <!-- 載入動畫 -->
@@ -107,7 +107,7 @@
                 <h4 style="margin-top: 15px; color: #b85d33;">總金額：<span id="totalPrice">0</span> 元</h4>
 
                 <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-                <h3>填寫收件資訊</h3>
+                <h3>填寫收件資訊（郵局貨到付款）</h3>
                 <div class="form-group"><label>姓名：</label><input type="text" id="custName" required style="padding: 5px;"></div>
                 <div class="form-group"><label>電話：</label><input type="tel" id="custPhone" required style="padding: 5px;"></div>
                 <div class="form-group"><label>住址：</label><input type="text" id="custAddress" required style="width: 300px; padding: 5px;"></div>
@@ -125,10 +125,10 @@
     </main>
 
     <footer>
-        <p>華庭茶葉 huatingtea.com</p>
-        <p>客服專線：0937-780661（10:00-20:00）</p>
-        <p>本頁由 許元洧 維護</p>
-        <a href="admin.html">後台</a>
+        <p>華庭茶葉 huatingtea.com[cite: 1, 2]</p>
+        <p>客服專線：0937-780661（10:00-20:00）[cite: 1, 2]</p>
+        <p>本頁由 許元洧 維護[cite: 1, 2]</p>
+        <a href="admin.html" style="color: #ffeb3b;">後台管理</a>
     </footer>
 
     <script>
@@ -200,7 +200,7 @@
         toggleSearchBtn.addEventListener('click', function() {
             if (searchBoxContent.style.display === 'block') {
                 searchBoxContent.style.display = 'none';
-                toggleSearchBtn.innerText = '🔍 點此查詢我的訂單進度';
+                toggleSearchBtn.innerText = '查詢訂單進度';
             } else {
                 searchBoxContent.style.display = 'block';
                 toggleSearchBtn.innerText = '✖ 關閉訂單查詢';
@@ -370,7 +370,7 @@
                 const res = await fetch(currentGasUrl, { method: 'POST', body: JSON.stringify(orderData) });
                 const result = await res.json();
                 if (result.status === 'success') {
-                    alert(`訂單送出成功！您的訂單編號為：${result.orderId}`);
+                    alert(`訂單送出成功！您的訂單編號為：${result.orderId}（採用郵局貨到付款）`);
                     window.location.href = 'index.html';
                 }
             } catch (err) {
