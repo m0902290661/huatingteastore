@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>華庭茶葉商城</title>
+    <link rel="icon" type="png" href="logo.png">
+    <link rel="stylesheet" href="index.css">
+    <style>
+        .preview-img { max-width: 200px; height: auto; display: block; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; }
+        #loadingSpinner { display: none; text-align: center; padding: 30px; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #4CAF50; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .form-group { margin: 10px 0; }
+        .form-group label { display: inline-block; width: 80px; }
+        
+        .search-container { margin-bottom: 2rem; }
+        .search-toggle-btn { background: #607D8B; color: white; border: none; padding: 10px 18px; cursor: pointer; border-radius: 6px; font-size: 1rem; }
+        .search-box { display: none; margin-top: 15px; padding: 20px; background: #ffffff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        .captcha-box { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+        .captcha-canvas { background: #f0f0f0; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 14px; }
+        th { background: #eee; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><img src="logo.png" alt="華庭茶葉 Logo"> 華庭茶葉 商城</h1>
+    </header>
+    
+    <main>
+        <!-- 首頁區塊 -->
+        <div id="homeSection">
+            <!-- 訂單查詢收納區塊 -->
+            <div class="search-container">
+                <button class="search-toggle-btn" id="toggleSearchBtn">查詢訂單進度</button>
+                <div class="search-box" id="searchBoxContent">
+                    <h3>查詢訂單進度</h3>
+                    <div class="form-group">
+                        <label style="width:auto;">電話：</label>
+                        <input type="tel" id="searchPhone" placeholder="請輸入訂購電話" style="padding: 6px; width: 200px;">
+                    </div>
+                    <div class="captcha-box">
+                        <canvas id="searchCaptchaCanvas" class="captcha-canvas" width="100" height="40" title="點擊重設驗證碼"></canvas>
+                        <input type="text" id="searchCaptchaInput" placeholder="請輸入驗證碼" style="padding: 6px; width: 110px;">
+                    </div>
+                    <button id="searchBtn" style="padding: 8px 15px; background: #2196F3; color: white; border: none; cursor: pointer; border-radius: 4px;">開始查詢</button>
+                    <div id="searchResult" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <!-- 推薦商品區塊（多項時自動橫向並排） -->
+            <div class="推薦">
+                <h2>推薦商品</h2>
+                
+                <!-- 商品卡片 1 -->
+                <div class="card">
+                    <img src="華庭茶葉節日禮盒.png" alt="華庭茶葉節日禮盒">
+                    <p>華庭茶葉節日禮盒</p>
+                    <p>NTD 1000起</p>
+                    <a href="?id=華庭茶葉節日禮盒" class="product-link">查看</a>
+                </div>
+
+            </div>
+            <div class="推薦">
+                <h2>全部商品</h2>
+                <div class="card">
+                    <img src="華庭茶葉節日禮盒.png" alt="華庭茶葉節日禮盒">
+                    <p>華庭茶葉節日禮盒</p>
+                    <p>NTD 1000起</p>
+                    <a href="?id=華庭茶葉節日禮盒" class="product-link">查看</a>
+                </div>
+        </div>
+
+        <!-- 載入動畫 -->
+        <div id="loadingSpinner">
+            <div class="spinner"></div>
+            <p>資料載入中，請稍候...</p>
+        </div>
+
+        <!-- 結帳下單詳細區塊 -->
+        <div id="detailSection" style="display: none;">
+            <h2 id="productTitle">商品標題載入中...</h2>
+            <img id="productImg" class="preview-img" src="" alt="商品圖片">
+            <p id="productDesc"></p>
+            
+            <div id="selectionSection" style="margin-top: 20px; padding: 20px; background: #fff; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <h3>規格與搭配選擇</h3>
+                <p id="teaPriceText" style="margin: 10px 0; font-weight: bold;"></p>
+                
+                <div style="margin: 15px 0;">
+                    <label for="canSelect">選擇搭配罐子：</label>
+                    <select id="canSelect" style="padding: 5px;"><option value="0" data-name="">不需搭配罐子 (0元)</option></select>
+                    <div><img id="canImg" class="preview-img" src="" alt="" style="display:none; max-width: 120px;"></div>
+                </div>
+
+                <div style="margin: 15px 0;">
+                    <label for="boxSelect">選擇搭配禮盒：</label>
+                    <select id="boxSelect" style="padding: 5px;"><option value="0" data-name="">不需搭配禮盒 (0元)</option></select>
+                    <div><img id="boxImg" class="preview-img" src="" alt="" style="display:none; max-width: 120px;"></div>
+                </div>
+                
+                <h4 style="margin-top: 15px; color: #b85d33;">總金額：<span id="totalPrice">0</span> 元</h4>
+
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                <h3>填寫收件資訊</h3>
+                <div class="form-group"><label>姓名：</label><input type="text" id="custName" required style="padding: 5px;"></div>
+                <div class="form-group"><label>電話：</label><input type="tel" id="custPhone" required style="padding: 5px;"></div>
+                <div class="form-group"><label>住址：</label><input type="text" id="custAddress" required style="width: 300px; padding: 5px;"></div>
+                
+                <div class="captcha-box">
+                    <canvas id="orderCaptchaCanvas" class="captcha-canvas" width="100" height="40" title="點擊重設驗證碼"></canvas>
+                    <input type="text" id="orderCaptchaInput" placeholder="請輸入驗證碼" style="padding: 6px; width: 110px;">
+                </div>
+
+                <button id="submitOrderBtn" style="margin-top: 15px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; font-size: 1rem;">確認送出訂單</button>
+            </div>
+            
+            <p style="margin-top: 20px;"><a href="#" id="backHomeBtn" style="color: #2c4a3e; text-decoration: none; font-weight: bold;">← 返回首頁</a></p>
+        </div>
+    </main>
+
+    <footer>
+        <p>華庭茶葉 huatingtea.com</p>
+        <p>客服專線：0937-780661（10:00-20:00）</p>
+        <p>本頁由 許元洧 維護</p>
+        <a href="admin.html">後台</a>
+    </footer>
+
+    <script>
+        const homeSection = document.getElementById('homeSection');
+        const detailSection = document.getElementById('detailSection');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const titleElement = document.getElementById('productTitle');
+        const imgElement = document.getElementById('productImg');
+        const descElement = document.getElementById('productDesc');
+        const teaPriceText = document.getElementById('teaPriceText');
+        const canSelect = document.getElementById('canSelect');
+        const canImg = document.getElementById('canImg');
+        const boxSelect = document.getElementById('boxSelect');
+        const boxImg = document.getElementById('boxImg');
+        const totalPriceEl = document.getElementById('totalPrice');
+        const backHomeBtn = document.getElementById('backHomeBtn');
+        const submitOrderBtn = document.getElementById('submitOrderBtn');
+        
+        const toggleSearchBtn = document.getElementById('toggleSearchBtn');
+        const searchBoxContent = document.getElementById('searchBoxContent');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchPhone = document.getElementById('searchPhone');
+        const searchResult = document.getElementById('searchResult');
+
+        let searchCaptchaVal = "";
+        let orderCaptchaVal = "";
+        let baseTeaPrice = 0;
+        let currentGasUrl = "";
+
+        function drawCaptcha(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let code = "";
+            for (let i = 0; i < 4; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            ctx.fillStyle = "#eef2f3";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < 3; i++) {
+                ctx.strokeStyle = `rgb(${Math.random()*150}, ${Math.random()*150}, ${Math.random()*150})`;
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.stroke();
+            }
+
+            ctx.font = "bold 22px Arial";
+            for (let i = 0; i < code.length; i++) {
+                ctx.fillStyle = `rgb(${Math.random()*100}, ${Math.random()*100}, ${Math.random()*100})`;
+                ctx.save();
+                ctx.translate(20 + i * 18, 25);
+                ctx.rotate((Math.random() - 0.5) * 0.4);
+                ctx.fillText(code[i], 0, 0);
+                ctx.restore();
+            }
+
+            if (canvasId === 'searchCaptchaCanvas') searchCaptchaVal = code;
+            if (canvasId === 'orderCaptchaCanvas') orderCaptchaVal = code;
+        }
+
+        document.getElementById('searchCaptchaCanvas').addEventListener('click', () => drawCaptcha('searchCaptchaCanvas'));
+        document.getElementById('orderCaptchaCanvas').addEventListener('click', () => drawCaptcha('orderCaptchaCanvas'));
+
+        toggleSearchBtn.addEventListener('click', function() {
+            if (searchBoxContent.style.display === 'block') {
+                searchBoxContent.style.display = 'none';
+                toggleSearchBtn.innerText = '🔍 點此查詢我的訂單進度';
+            } else {
+                searchBoxContent.style.display = 'block';
+                toggleSearchBtn.innerText = '✖ 關閉訂單查詢';
+                drawCaptcha('searchCaptchaCanvas');
+            }
+        });
+
+        async function checkUrlAndRender() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id');
+
+            try {
+                const apiRes = await fetch('api.json');
+                const apiConfig = await apiRes.json();
+                currentGasUrl = apiConfig.gasUrl;
+            } catch (err) { console.error(err); }
+
+            if (productId) {
+                homeSection.style.display = 'none';
+                detailSection.style.display = 'none';
+                loadingSpinner.style.display = 'block';
+
+                titleElement.innerText = productId;
+                imgElement.src = `${productId}.png`;
+                imgElement.alt = productId;
+
+                try {
+                    const res = await fetch(`${currentGasUrl}?id=${encodeURIComponent(productId)}`);
+                    const data = await res.json();
+
+                    descElement.innerText = data.description;
+                    baseTeaPrice = Number(data.teaPrice) || 0;
+                    teaPriceText.innerText = `茶葉基本定價：${baseTeaPrice} 元`;
+                    
+                    canSelect.innerHTML = '<option value="0" data-name="">不需搭配罐子 (0元)</option>';
+                    data.cans.forEach(can => {
+                        let opt = document.createElement('option');
+                        opt.value = can.price;
+                        opt.setAttribute('data-name', can.name);
+                        opt.text = `${can.name} (+${can.price}元)`;
+                        canSelect.appendChild(opt);
+                    });
+
+                    boxSelect.innerHTML = '<option value="0" data-name="">不需搭配禮盒 (0元)</option>';
+                    data.boxes.forEach(box => {
+                        let opt = document.createElement('option');
+                        opt.value = box.price;
+                        opt.setAttribute('data-name', box.name);
+                        opt.text = `${box.name} (+${box.price}元)`;
+                        boxSelect.appendChild(opt);
+                    });
+
+                    calculateTotal();
+                    loadingSpinner.style.display = 'none';
+                    detailSection.style.display = 'block';
+                    drawCaptcha('orderCaptchaCanvas');
+                } catch (err) {
+                    loadingSpinner.style.display = 'none';
+                    detailSection.style.display = 'block';
+                    descElement.innerText = '載入商品資料失敗。';
+                }
+            } else {
+                homeSection.style.display = 'block';
+                detailSection.style.display = 'none';
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        searchBtn.addEventListener('click', async function() {
+            let phone = searchPhone.value.trim();
+            let userInput = document.getElementById('searchCaptchaInput').value.trim().toUpperCase();
+
+            if (!phone) { alert('請輸入電話號碼！'); return; }
+            if (!userInput) { alert('請輸入驗證碼！'); return; }
+            if (userInput !== searchCaptchaVal) {
+                alert('驗證碼錯誤，請重新輸入！');
+                drawCaptcha('searchCaptchaCanvas');
+                document.getElementById('searchCaptchaInput').value = '';
+                return;
+            }
+            
+            searchResult.innerText = '查詢中...';
+            try {
+                const res = await fetch(`${currentGasUrl}?action=searchOrder&phone=${encodeURIComponent(phone)}`);
+                const data = await res.json();
+                
+                if (data.orders.length === 0) {
+                    searchResult.innerHTML = '<p style="color: red;">查無此電話相關訂單。</p>';
+                    drawCaptcha('searchCaptchaCanvas');
+                    return;
+                }
+                
+                let html = `<table><tr><th>訂單編號</th><th>商品</th><th>總金額</th><th>目前進度</th><th>郵局寄件代號</th></tr>`;
+                data.orders.forEach(ord => {
+                    let trackingDisplay = (ord.status === '備貨處理中' || !ord.trackingCode || ord.trackingCode === '無') 
+                        ? '尚未寄出' 
+                        : ord.trackingCode;
+
+                    html += `<tr>
+                        <td>${ord.orderId}</td>
+                        <td>${ord.product}</td>
+                        <td>${ord.total}</td>
+                        <td style="color: green; font-weight: bold;">${ord.status}</td>
+                        <td>${trackingDisplay}</td>
+                    </tr>`;
+                });
+                html += `</table>`;
+                searchResult.innerHTML = html;
+                drawCaptcha('searchCaptchaCanvas');
+            } catch (err) {
+                searchResult.innerText = '查詢失敗，請稍後再試。';
+                drawCaptcha('searchCaptchaCanvas');
+            }
+        });
+
+        function handleCanChange() {
+            calculateTotal();
+            const opt = canSelect.options[canSelect.selectedIndex];
+            const name = opt.getAttribute('data-name');
+            if (name) { canImg.src = `${name}.png`; canImg.style.display = 'block'; }
+            else { canImg.style.display = 'none'; }
+        }
+
+        function handleBoxChange() {
+            calculateTotal();
+            const opt = boxSelect.options[boxSelect.selectedIndex];
+            const name = opt.getAttribute('data-name');
+            if (name) { boxImg.src = `${name}.png`; boxImg.style.display = 'block'; }
+            else { boxImg.style.display = 'none'; }
+        }
+
+        function calculateTotal() {
+            let total = baseTeaPrice + (Number(canSelect.value) || 0) + (Number(boxSelect.value) || 0);
+            totalPriceEl.innerText = total;
+        }
+
+        canSelect.addEventListener('change', handleCanChange);
+        boxSelect.addEventListener('change', handleBoxChange);
+
+        submitOrderBtn.addEventListener('click', async function() {
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const address = document.getElementById('custAddress').value.trim();
+            const userInput = document.getElementById('orderCaptchaInput').value.trim().toUpperCase();
+
+            if (!name || !phone || !address) { alert('請完整填寫姓名、電話與住址！'); return; }
+            if (!userInput) { alert('請輸入驗證碼！'); return; }
+            if (userInput !== orderCaptchaVal) {
+                alert('驗證碼錯誤，請重新輸入！');
+                drawCaptcha('orderCaptchaCanvas');
+                document.getElementById('orderCaptchaInput').value = '';
+                return;
+            }
+
+            const orderData = {
+                name: name, phone: phone, address: address,
+                product: titleElement.innerText,
+                can: canSelect.options[canSelect.selectedIndex].text,
+                box: boxSelect.options[boxSelect.selectedIndex].text,
+                total: totalPriceEl.innerText
+            };
+
+            submitOrderBtn.innerText = '訂單送出中...';
+            submitOrderBtn.disabled = true;
+
+            try {
+                const res = await fetch(currentGasUrl, { method: 'POST', body: JSON.stringify(orderData) });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    alert(`訂單送出成功！您的訂單編號為：${result.orderId}`);
+                    window.location.href = 'index.html';
+                }
+            } catch (err) {
+                alert('送出失敗');
+                submitOrderBtn.innerText = '確認送出訂單';
+                submitOrderBtn.disabled = false;
+                drawCaptcha('orderCaptchaCanvas');
+            }
+        });
+
+        checkUrlAndRender();
+        backHomeBtn.addEventListener('click', (e) => { e.preventDefault(); window.history.pushState({}, '', window.location.pathname); detailSection.style.display = 'none'; homeSection.style.display = 'block'; });
+    </script>
+</body>
+</html>

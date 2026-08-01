@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>華庭茶葉 - 後台管理</title>
+    <link rel="stylesheet" href="index.css">
+    <style>
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }
+        th { background-color: #f2f2f2; }
+        .section { margin-bottom: 40px; }
+        select, input { padding: 4px; }
+        button { padding: 4px 8px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        
+        .refresh-btn {
+            background-color: #2196F3;
+            padding: 8px 15px;
+            font-size: 14px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .refresh-btn:hover { background-color: #0b7dda; }
+
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .login-box {
+            background: white; padding: 30px; border-radius: 8px; text-align: center; width: 320px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .login-box input { width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+        .login-box button { width: 100%; padding: 10px; background: #2c4a3e; color: white; border: none; border-radius: 4px; font-weight: bold; }
+    </style>
+</head>
+<body style="padding: 20px;">
+
+    <!-- 初始僅放置登入容器，安全防護：未登入前完全不輸出後台 DOM 結構 -->
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2>後台管理登入</h2>
+            <input type="text" id="loginUser" placeholder="請輸入帳號" autocomplete="off">
+            <input type="password" id="loginPass" placeholder="請輸入密碼">
+            <button id="loginBtn">登入</button>
+            <p id="loginMsg" style="color: red; margin-top: 10px; font-size: 14px;"></p>
+            <p style="margin-top: 15px;"><a href="index.html" style="color: #666; text-decoration: none;">← 返回前台商城</a></p>
+        </div>
+    </div>
+
+    <!-- 後台主容器 (內容由 JS 驗證成功後動態生成，無法透過刪除遮罩繞過) -->
+    <div id="adminMainContainer"></div>
+
+    <script>
+        (function() {
+            let currentGasUrl = "";
+            
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            const loginOverlay = document.getElementById('loginOverlay');
+            const adminMainContainer = document.getElementById('adminMainContainer');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginMsg = document.getElementById('loginMsg');
+
+            async function verifyAndLoad() {
+                const savedUser = sessionStorage.getItem('adminUser');
+                const savedPass = sessionStorage.getItem('adminPass');
+
+                if (!savedUser || !savedPass) return;
+
+                try {
+                    const apiRes = await fetch('api.json');
+                    const apiConfig = await apiRes.json();
+                    currentGasUrl = apiConfig.gasUrl;
+
+                    const res = await fetch(`${currentGasUrl}?action=adminLogin&user=${encodeURIComponent(savedUser)}&pass=${encodeURIComponent(savedPass)}`);
+                    const result = await res.json();
+
+                    if (result.status === 'success') {
+                        loginOverlay.remove();
+                        renderAdminUI();
+                        initAdminData();
+                    } else {
+                        sessionStorage.clear();
+                    }
+                } catch (e) {
+                    console.error("驗證連線失敗", e);
+                }
+            }
+
+            verifyAndLoad();
+
+            loginBtn.addEventListener('click', async function() {
+                const user = document.getElementById('loginUser').value.trim();
+                const pass = document.getElementById('loginPass').value.trim();
+
+                if (!user || !pass) {
+                    loginMsg.innerText = '請完整輸入帳號與密碼！';
+                    return;
+                }
+
+                loginMsg.innerText = '驗證中...';
+
+                try {
+                    const apiRes = await fetch('api.json');
+                    const apiConfig = await apiRes.json();
+                    currentGasUrl = apiConfig.gasUrl;
+
+                    const res = await fetch(`${currentGasUrl}?action=adminLogin&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`);
+                    const result = await res.json();
+
+                    if (result.status === 'success') {
+                        sessionStorage.setItem('adminUser', user);
+                        sessionStorage.setItem('adminPass', pass);
+                        loginOverlay.remove();
+                        renderAdminUI();
+                        initAdminData();
+                    } else {
+                        loginMsg.innerText = '帳號或密碼錯誤！';
+                    }
+                } catch (err) {
+                    loginMsg.innerText = '伺服器連線失敗！';
+                }
+            });
+
+            function renderAdminUI() {
+                adminMainContainer.innerHTML = `
+                    <h1>華庭茶葉商城 - 後台管理系統</h1>
+                    <p style="margin-bottom: 15px;">
+                        <a href="#" id="logoutBtn" style="color: red;">登出系統</a> | 
+                        <a href="index.html">返回前台商城</a>
+                    </p>
+
+                    <button class="refresh-btn" id="refreshBtn">重新整理資料</button>
+
+                    <div class="section">
+                        <h2>訂單管理與進度更新</h2>
+                        <table id="orderTable">
+                            <thead>
+                                <tr>
+                                    <th>訂單編號</th>
+                                    <th>姓名</th>
+                                    <th>電話</th>
+                                    <th>商品/搭配</th>
+                                    <th>總金額</th>
+                                    <th>處理進度</th>
+                                    <th>郵局寄件代號</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2>客戶資料管理</h2>
+                        <table id="customerTable">
+                            <thead>
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>電話</th>
+                                    <th>住址</th>
+                                    <th>建立時間</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                `;
+
+                document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    sessionStorage.clear();
+                    location.reload();
+                });
+
+                document.getElementById('refreshBtn').addEventListener('click', function() {
+                    this.innerText = '讀取中...';
+                    initAdminData().then(() => {
+                        this.innerText = '重新整理資料';
+                    });
+                });
+            }
+
+            async function initAdminData() {
+                const user = sessionStorage.getItem('adminUser');
+                const pass = sessionStorage.getItem('adminPass');
+
+                try {
+                    if (!currentGasUrl) {
+                        const apiRes = await fetch('api.json');
+                        const apiConfig = await apiRes.json();
+                        currentGasUrl = apiConfig.gasUrl;
+                    }
+
+                    const res = await fetch(`${currentGasUrl}?action=getAdminData&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`);
+                    const data = await res.json();
+
+                    if (data.status === 'unauthorized') {
+                        alert('權限驗證失效，請重新登入！');
+                        sessionStorage.clear();
+                        location.reload();
+                        return;
+                    }
+
+                    const orderTbody = document.getElementById('orderTable').querySelector('tbody');
+                    orderTbody.innerHTML = '';
+                    data.orders.slice(1).forEach((row, index) => {
+                        let tr = document.createElement('tr');
+                        // 針對更新按鈕改用事件監聽，避免在 HTML 內嵌 onclick 暴露全域函式
+                        tr.innerHTML = `
+                            <td>${escapeHtml(row[0])}</td>
+                            <td>${escapeHtml(row[1])}</td>
+                            <td>${escapeHtml(row[2])}</td>
+                            <td>${escapeHtml(row[3])}<br><small>${escapeHtml(row[4])} / ${escapeHtml(row[5])}</small></td>
+                            <td>${escapeHtml(row[6])}</td>
+                            <td>
+                                <select id="status_${index}">
+                                    <option value="備貨處理中" ${row[7] === '備貨處理中' ? 'selected' : ''}>備貨處理中</option>
+                                    <option value="郵局已寄出" ${row[7] === '郵局已寄出' ? 'selected' : ''}>郵局已寄出</option>
+                                    <option value="完成" ${row[7] === '完成' ? 'selected' : ''}>完成</option>
+                                </select>
+                            </td>
+                            <td><input type="text" id="tracking_${index}" value="${row[8] === '無' ? '' : escapeHtml(row[8])}" placeholder="請輸入寄件代號" style="width: 110px;" maxlength="30"></td>
+                            <td><button class="save-btn" data-id="${escapeHtml(row[0])}" data-index="${index}">儲存</button></td>
+                        `;
+                        orderTbody.appendChild(tr);
+                    });
+
+                    // 綁定儲存按鈕事件
+                    document.querySelectorAll('.save-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            updateOrder(this.getAttribute('data-id'), this.getAttribute('data-index'));
+                        });
+                    });
+
+                    const custTbody = document.getElementById('customerTable').querySelector('tbody');
+                    custTbody.innerHTML = '';
+                    data.customers.slice(1).forEach(row => {
+                        let tr = document.createElement('tr');
+                        tr.innerHTML = `<td>${escapeHtml(row[0])}</td><td>${escapeHtml(row[1])}</td><td>${escapeHtml(row[2])}</td><td>${escapeHtml(row[3])}</td>`;
+                        custTbody.appendChild(tr);
+                    });
+
+                } catch (err) {
+                    console.error("載入後台資料失敗", err);
+                }
+            }
+
+            async function updateOrder(orderId, index) {
+                const user = sessionStorage.getItem('adminUser');
+                const pass = sessionStorage.getItem('adminPass');
+                const status = document.getElementById(`status_${index}`).value;
+                const trackingCode = document.getElementById(`tracking_${index}`).value.trim() || "無";
+
+                try {
+                    const res = await fetch(currentGasUrl, {
+                        method: 'POST',
+                        body: JSON.stringify({ 
+                            action: "updateStatus", 
+                            user: user, 
+                            pass: pass, 
+                            orderId: orderId, 
+                            status: status, 
+                            trackingCode: trackingCode 
+                        })
+                    });
+                    const result = await res.json();
+                    if (result.status === 'success') {
+                        alert(`訂單 ${orderId} 更新成功！`);
+                        initAdminData();
+                    } else {
+                        alert('更新失敗：權限不足');
+                    }
+                } catch (err) {
+                    alert('更新失敗');
+                }
+            }
+        })();
+    </script>
+</body>
+</html>
