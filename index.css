@@ -35,6 +35,12 @@ header img {
     height: 35px;
 }
 
+header a{
+    text-decoration: none;
+    text-decoration: underline;
+    color: white;
+}
+
 /* Main Content Styles */
 main {
     max-width: 1200px;
